@@ -42,6 +42,88 @@ local Window = Rayfield:CreateWindow({
 -- DATA & LOGIC
 -- ==========================================
 
+_G.AutoDeposit = false
+_G.AutoHold = false
+_G.AutoGrabBrainrot = false
+
+-- Brainrots you WANT to grab
+_G.SelectedBrainrots = {
+    "Divine",
+    "Noobini Pizzanini"
+}
+local function isWantedBrainrot(tool)
+    for _, name in ipairs(_G.SelectedBrainrots) do
+        if string.find(string.lower(tool.Name), string.lower(name)) then
+            return true
+        end
+    end
+    return false
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if not _G.AutoHold then continue end
+
+        local char = Player.Character
+        local backpack = Player:FindFirstChild("Backpack")
+        if not char or not backpack then continue end
+
+        -- If already holding something, skip
+        if char:FindFirstChildOfClass("Tool") then continue end
+
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                tool.Parent = char
+                break
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while task.wait(0.5) do
+        if not _G.AutoGrabBrainrot then continue end
+
+        local char = Player.Character
+        local backpack = Player:FindFirstChild("Backpack")
+        if not char or not backpack then continue end
+        if char:FindFirstChildOfClass("Tool") then continue end
+
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") and isWantedBrainrot(tool) then
+                tool.Parent = char
+                break
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while task.wait(1) do
+        if not _G.AutoDeposit then continue end
+
+        local char = Player.Character
+        local backpack = Player:FindFirstChild("Backpack")
+        if not char or not backpack then continue end
+
+        -- Equip first if nothing held
+        if not char:FindFirstChildOfClass("Tool") then
+            for _, tool in ipairs(backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    tool.Parent = char
+                    break
+                end
+            end
+        end
+
+        -- Deposit if holding
+        if char:FindFirstChildOfClass("Tool") then
+            fireMachineRemote("ProximityPrompt")
+            task.wait(0.4)
+        end
+    end
+end)
+
+
+
 -- VIP Locations from your script
 local vipLocations = {
 	Vector3.new(241.47, 3.27, -139.51),
@@ -983,6 +1065,31 @@ Automation:CreateButton({
         fireMachineRemote(3)
     end,
 })
+
+Automation:CreateToggle({
+    Name = "Auto Hold Item",
+    CurrentValue = false,
+    Callback = function(v)
+        _G.AutoHold = v
+    end
+})
+
+Automation:CreateToggle({
+    Name = "Auto Grab Selected Brainrots",
+    CurrentValue = false,
+    Callback = function(v)
+        _G.AutoGrabBrainrot = v
+    end
+})
+
+Automation:CreateToggle({
+    Name = "Auto Deposit to Machine",
+    CurrentValue = false,
+    Callback = function(v)
+        _G.AutoDeposit = v
+    end
+})
+
 
 local SettingsTab = Window:CreateTab("Settings", 4483345998)
 SettingsTab:CreateButton({
