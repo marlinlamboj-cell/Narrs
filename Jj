@@ -51,7 +51,8 @@ _G.SelectedBrainrots = {
     "Divine",
     "Noobini Pizzanini"
 }
-local function isWantedBrainrot(tool)
+--Bbbb
+local function isSelectedBrainrot(tool)
     for _, name in ipairs(_G.SelectedBrainrots) do
         if string.find(string.lower(tool.Name), string.lower(name)) then
             return true
@@ -60,25 +61,36 @@ local function isWantedBrainrot(tool)
     return false
 end
 
+
+local function isWantedBrainrot(tool)
+    for _, name in ipairs(_G.SelectedBrainrots) do
+        if string.find(string.lower(tool.Name), string.lower(name)) then
+            return true
+        end
+    end
+    return false
+end
+--Bbbb
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.4) do
         if not _G.AutoHold then continue end
 
         local char = Player.Character
         local backpack = Player:FindFirstChild("Backpack")
         if not char or not backpack then continue end
 
-        -- If already holding something, skip
+        -- Already holding something
         if char:FindFirstChildOfClass("Tool") then continue end
 
         for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") then
+            if tool:IsA("Tool") and isSelectedBrainrot(tool) then
                 tool.Parent = char
                 break
             end
         end
     end
 end)
+
 task.spawn(function()
     while task.wait(0.5) do
         if not _G.AutoGrabBrainrot then continue end
@@ -1090,6 +1102,23 @@ Automation:CreateToggle({
     end
 })
 
+Automation:CreateDropdown({
+    Name = "Select Brainrots to Hold",
+    Options = {
+        "Divine",
+        "Noobini Pizzanini",
+        "Elephanto",
+        "Admin",
+        "Celestial",
+        "Mythical",
+        "Legendary"
+    },
+    CurrentOption = {}, -- 👈 NONE selected by default
+    MultipleOptions = true,
+    Callback = function(options)
+        _G.SelectedBrainrots = options
+    end
+})
 
 local SettingsTab = Window:CreateTab("Settings", 4483345998)
 SettingsTab:CreateButton({
