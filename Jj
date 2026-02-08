@@ -1,0 +1,1010 @@
+--[[ 
+    ALPHA HUB | Escape Tsunami For Brainrots
+    REVISED VERSION (Rayfield)
+]]
+
+-- 1. WAIT FOR GAME TO LOAD
+repeat task.wait() until game:IsLoaded()
+
+local Player = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+-- 2. NOTIFY USER
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Alpha Hub";
+    Text = "Loading Interface...";
+    Duration = 5,
+})
+
+-- 3. LOAD LIBRARY (Rayfield)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- 4. CREATE WINDOW
+local Window = Rayfield:CreateWindow({
+    Name = "ALPHA HUB | Escape Tsunami For Brainrots",
+    LoadingTitle = "Alpha Hub Scripts",
+    LoadingSubtitle = "by Alpha Hub Team",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "AlphaHubConfig",
+        FileName = "AlphaHub"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "https://discord.gg/Suk9CryHvx",
+        RememberJoins = true 
+    },
+    KeySystem = false, 
+})
+
+-- ==========================================
+-- DATA & LOGIC
+-- ==========================================
+
+-- VIP Locations from your script
+local vipLocations = {
+	Vector3.new(241.47, 3.27, -139.51),
+	Vector3.new(341.39, 3.27, -139.50),
+	Vector3.new(470.24, 3.27, -139.53),
+	Vector3.new(647.98, 3.27, -139.51),
+	Vector3.new(917.80, 3.27, -139.51),
+	Vector3.new(1321.95, 3.27, -139.51),
+	Vector3.new(1912.83, 3.27, -138.53),
+	Vector3.new(2427.05, 3.27, -139.01)
+}
+
+local function getNearestGapIndex()
+    local character = Player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return 1 end
+    local root = character.HumanoidRootPart
+    local closestIndex = 1
+    local shortestDistance = math.huge
+    for i, gap in ipairs(gaps) do
+        if gap and gap:IsA("BasePart") then
+            local dist = (root.Position - gap.Position).Magnitude
+            if dist < shortestDistance then
+                shortestDistance = dist
+                closestIndex = i
+            end
+        end
+    end
+    return closestIndex
+end
+
+-- Nearest Index function for VIP
+local function getNearestVIPIndex()
+    local character = Player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return 1 end
+    local root = character.HumanoidRootPart
+    local closestIndex = 1
+    local shortestDistance = math.huge
+    for i, pos in ipairs(vipLocations) do
+        local distance = (root.Position - pos).Magnitude
+        if distance < shortestDistance then
+            shortestDistance = distance
+            closestIndex = i
+        end
+    end
+    return closestIndex
+end
+
+local function tweenToGap(index)
+    local character = Player.Character
+    local targetPart = gaps[index]
+    if not character or not character:FindFirstChild("HumanoidRootPart") or not targetPart then return end
+    local root = character.HumanoidRootPart
+    local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local targetCFrame = targetPart.CFrame * CFrame.new(0, 7, 0)
+    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+end
+
+-- Tween function for VIP
+local function tweenToVIP(targetVector)
+    local character = Player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local root = character.HumanoidRootPart
+    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local targetCFrame = CFrame.new(targetVector + Vector3.new(0, 3, 0))
+    
+    root.Anchored = true
+    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+    tween.Completed:Connect(function()
+        root.Anchored = false
+    end)
+end
+
+-- ==========================================
+-- MACHINE REMOTE (50 STUD DISTANCE EXPAND)
+-- ==========================================
+local SelectedMachineName = "Default"
+
+-- AUTO-EXPAND LOGIC: Runs immediately on execution
+task.spawn(function()
+    while task.wait(2) do -- Checks every 2 seconds for new spawned machines
+        pcall(function()
+            local spawnFolder = workspace:FindFirstChild("SpawnMachines")
+            if spawnFolder then
+                for _, machine in ipairs(spawnFolder:GetChildren()) do
+                    local prompts = machine:FindFirstChild("Main") and machine.Main:FindFirstChild("Prompts")
+                    if prompts then
+                        for _, prompt in ipairs(prompts:GetChildren()) do
+                            if prompt:IsA("ProximityPrompt") then
+                                prompt.MaxActivationDistance = 50
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- 1. Precision Fire with Stud-Distance Bypass
+local function fireMachineRemote(indexOrName)
+    local machine = workspace.SpawnMachines:FindFirstChild(SelectedMachineName)
+    if not machine or not machine:FindFirstChild("Main") then 
+        Rayfield:Notify({Title = "Error", Content = "Machine not found!", Duration = 2})
+        return 
+    end
+
+    local prompts = machine.Main:FindFirstChild("Prompts")
+    if not prompts then return end
+    
+    local target = (type(indexOrName) == "string") and prompts:FindFirstChild(indexOrName) or prompts:GetChildren()[indexOrName]
+
+    if target and target:IsA("ProximityPrompt") then
+        local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local oldPos = root.CFrame
+            -- Snap to machine (bypass 10/40 stud check)
+            root.CFrame = machine.Main.CFrame
+            task.wait(0.2) 
+            
+            fireproximityprompt(target)
+            
+            task.wait(0.1)
+            root.CFrame = oldPos 
+        end
+    end
+end
+
+-- 2. Your Working Confirmation Logic (Force Click)
+local function activateYesButton()
+    local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+    local choiceMenu = playerGui and playerGui:FindFirstChild("Menus") and playerGui.Menus:FindFirstChild("Choice")
+    local yesBtn = choiceMenu and choiceMenu.Choices:FindFirstChild("Yes")
+
+    if yesBtn then
+        -- Method A: Signal Simulation
+        pcall(function()
+            firesignal(yesBtn.MouseButton1Click)
+            firesignal(yesBtn.Activated)
+        end)
+
+        -- Method B: Virtual Input Manager
+        local VIM = game:GetService("VirtualInputManager")
+        local x = yesBtn.AbsolutePosition.X + (yesBtn.AbsoluteSize.X / 2)
+        local y = yesBtn.AbsolutePosition.Y + (yesBtn.AbsoluteSize.Y / 2) + 58
+        
+        VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+        task.wait(0.05)
+        VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+    end
+end
+
+-- ==========================================
+-- REMOTE REFERENCES
+-- ==========================================
+local SellAllRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("SellAll")
+local SellToolRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("SellTool")
+local UpgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeSpeed")
+local RebirthRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("Rebirth")
+local WheelRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/WheelSpin.Roll")
+
+-- ==========================================
+-- TAB 1: MAIN (User Stats)
+-- ==========================================
+local MainTab = Window:CreateTab("Main", 4483345998)
+local InfoSection = MainTab:CreateSection("User Information")
+
+MainTab:CreateLabel("Username: " .. Player.Name)
+MainTab:CreateLabel("Display Name: " .. Player.DisplayName)
+MainTab:CreateLabel("User ID: " .. Player.UserId)
+MainTab:CreateLabel("Account Age: " .. Player.AccountAge .. " days")
+
+local CreditsSection = MainTab:CreateSection("Credits")
+MainTab:CreateLabel("Scripting: LexSauce / Alpha Hub Team")
+
+local SocialSection = MainTab:CreateSection("Community")
+MainTab:CreateButton({
+    Name = "Copy Discord Invite",
+    Callback = function()
+        setclipboard("https://discord.gg/avGM6WQKCx")
+        Rayfield:Notify({
+            Title = "Link Copied!",
+            Content = "The Discord invite has been copied to your clipboard.",
+            Duration = 5,
+            Image = 4483345998,
+        })
+    end,
+})
+
+-- ==========================================
+-- TAB 2: GAME TAB
+-- ==========================================
+local GameTab = Window:CreateTab("Game Tab", 4483345998)
+
+-- --- VIP NAVIGATION SECTION ---
+GameTab:CreateSection("VIP Navigation ( DO NOT SPAM )")
+
+-- THE UPDATED WALL DESTROYER
+GameTab:CreateButton({
+    Name = "Destroy VIP Walls",
+    Callback = function()
+        -- List of all possible folder locations
+        local mapPaths = {
+            workspace:FindFirstChild("MarsMap_SharedInstances"),
+            workspace:FindFirstChild("MoneyMap_SharedInstances"),
+            workspace:FindFirstChild("DefaultMap_SharedInstances")
+        }
+
+        local found = false
+
+        for _, folder in ipairs(mapPaths) do
+            if folder and folder:FindFirstChild("VIPWalls") then
+                folder.VIPWalls:Destroy()
+                found = true
+            end
+        end
+
+        -- Final backup search if the folders didn't work
+        if not found then
+            local backup = workspace:FindFirstChild("VIPWalls", true)
+            if backup then
+                backup:Destroy()
+                found = true
+            end
+        end
+
+        if found then
+            Rayfield:Notify({Title = "Alpha Hub", Content = "VIP Walls Destroyed!", Duration = 3})
+        else
+            Rayfield:Notify({Title = "Error", Content = "VIP Walls not found in any map!", Duration = 3})
+        end
+    end,
+})
+
+GameTab:CreateButton({
+    Name = "VIP Up (+1)",
+    Callback = function()
+        local currentIndex = getNearestVIPIndex()
+        if currentIndex < #vipLocations then
+            tweenToVIP(vipLocations[currentIndex + 1])
+        end
+    end,
+})
+
+GameTab:CreateButton({
+    Name = "VIP Down (-1)",
+    Callback = function()
+        local currentIndex = getNearestVIPIndex()
+        if currentIndex > 1 then
+            tweenToVIP(vipLocations[currentIndex - 1])
+        end
+    end,
+})
+
+GameTab:CreateLabel("DON'T GO NEAR THE WAVES PLAYER WILL DIE")
+
+-- --- ESP SECTION ---
+GameTab:CreateSection("ESP")
+
+local LB_PATH = workspace:WaitForChild("ActiveLuckyBlocks")
+_G.LB_ESP_Enabled = false
+_G.LB_Filters = {"All"} 
+
+local function RemoveESP(block)
+    if block:FindFirstChild("ESPHighlight") then block.ESPHighlight:Destroy() end
+    if block:FindFirstChild("ESPLabel") then block.ESPLabel:Destroy() end
+end
+
+local function ApplyLB_ESP(block)
+    -- Ensure we don't double-up ESP on the same block
+    RemoveESP(block)
+    if not _G.LB_ESP_Enabled then return end
+
+    -- Wait a tiny bit for the game to set the Rarity/Name values on spawn
+    task.wait(0.1) 
+    if not block.Parent then return end -- Check if it still exists
+
+    local rarityObj = block:FindFirstChild("Rarity") or block:FindFirstChild("Type")
+    local mutationObj = block:FindFirstChild("Mutation")
+    
+    local rarityName = rarityObj and tostring(rarityObj.Value) or block.Name
+    local mutationName = mutationObj and tostring(mutationObj.Value) or ""
+    local displayName = mutationName ~= "" and (mutationName .. " " .. rarityName) or rarityName
+    
+    local nameLower = string.lower(block.Name)
+    local rarityLower = string.lower(rarityName)
+    
+    -- Detection Logic
+    local isUfo = string.find(nameLower, "ufo") or string.find(rarityLower, "ufo")
+    local isAdmin = string.find(nameLower, "admin") or string.find(rarityLower, "admin")
+    local isRadioactive = string.find(nameLower, "radioactive") or string.find(rarityLower, "radioactive")
+    local isMoney = string.find(nameLower, "money") or string.find(rarityLower, "money")
+    local isCelestial = string.find(nameLower, "celestial") or string.find(rarityLower, "celestial")
+    local isDivine = string.find(nameLower, "divine") or string.find(rarityLower, "divine")
+    
+    if isUfo then displayName = "UFO LUCKY BLOCK" 
+    elseif isAdmin then displayName = "ADMIN LUCKY BLOCK"
+    elseif isRadioactive then displayName = "RADIOACTIVE LUCKY BLOCK"
+    elseif isMoney then displayName = "MONEY LUCKY BLOCK"
+    elseif isCelestial then displayName = "CELESTIAL LUCKY BLOCK"
+    elseif isDivine then displayName = "DIVINE LUCKY BLOCK" end
+
+    local shouldShow = false
+    if table.find(_G.LB_Filters, "All") then
+        shouldShow = true
+    else
+        for _, filterValue in ipairs(_G.LB_Filters) do
+            if string.find(string.lower(displayName), string.lower(filterValue)) then
+                shouldShow = true
+                break
+            end
+        end
+    end
+
+    if not shouldShow then return end
+
+    local hl = Instance.new("Highlight")
+    hl.Name = "ESPHighlight"
+    
+    -- Color Logic
+    if isAdmin then hl.FillColor = Color3.fromRGB(255, 50, 50) 
+    elseif isRadioactive then hl.FillColor = Color3.fromRGB(150, 255, 0) 
+    elseif isMoney then hl.FillColor = Color3.fromRGB(0, 255, 0)
+    elseif isUfo then hl.FillColor = Color3.fromRGB(0, 255, 100) 
+    elseif isCelestial then hl.FillColor = Color3.fromRGB(0, 180, 255)
+    elseif isDivine then hl.FillColor = Color3.fromRGB(255, 255, 255)
+    else hl.FillColor = Color3.fromRGB(255, 215, 0) end
+    
+    hl.FillTransparency = 0.5
+    hl.Parent = block
+
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "ESPLabel"
+    bb.Size = UDim2.new(0, 200, 0, 50)
+    bb.StudsOffset = Vector3.new(0, 4, 0)
+    bb.AlwaysOnTop = true
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = bb
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1,0,1,0)
+    lbl.Text = displayName
+    lbl.TextColor3 = hl.FillColor
+    lbl.TextStrokeTransparency = 0
+    lbl.TextScaled = true
+    lbl.Font = Enum.Font.GothamBold
+    bb.Parent = block
+end
+
+-- --- AUTOMATION LOGIC ---
+-- This part listens for NEW blocks appearing while the script is running
+LB_PATH.ChildAdded:Connect(function(child)
+    if _G.LB_ESP_Enabled then
+        ApplyLB_ESP(child)
+    end
+end)
+
+GameTab:CreateToggle({
+    Name = "Enable Lucky Block ESP",
+    CurrentValue = false,
+    Flag = "LBToggle",
+    Callback = function(Value)
+        _G.LB_ESP_Enabled = Value
+        -- Refresh existing blocks when toggled
+        for _, v in ipairs(LB_PATH:GetChildren()) do 
+            if Value then ApplyLB_ESP(v) else RemoveESP(v) end 
+        end
+    end,
+})
+
+GameTab:CreateDropdown({
+    Name = "Select Rarity Filter",
+    Options = {"All", "Common", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial", "Divine", "Ufo", "Admin", "Radioactive", "Money"},
+    CurrentOption = {"All"},
+    MultipleOptions = true, 
+    Flag = "LBFilter",
+    Callback = function(Options)
+        _G.LB_Filters = Options 
+        for _, v in ipairs(LB_PATH:GetChildren()) do ApplyLB_ESP(v) end
+    end,
+})
+
+-- --- PROXIMITY SECTION ---
+GameTab:CreateSection("Interaction")
+
+_G.InstantPrompt = false
+local originalDurations = {} 
+
+GameTab:CreateToggle({
+    Name = "Instant Proximity Prompt",
+    CurrentValue = false,
+    Flag = "InstantPromptToggle",
+    Callback = function(Value)
+        _G.InstantPrompt = Value
+        if Value then
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    if not originalDurations[obj] then
+                        originalDurations[obj] = obj.HoldDuration
+                    end
+                    obj.HoldDuration = 0
+                end
+            end
+        else
+            for obj, duration in pairs(originalDurations) do
+                if obj and obj.Parent then
+                    obj.HoldDuration = duration
+                end
+            end
+            table.clear(originalDurations)
+        end
+    end,
+})
+
+workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("ProximityPrompt") then
+        if _G.InstantPrompt then
+            task.wait() -- Ensure the prompt is fully initialized
+            originalDurations[obj] = obj.HoldDuration
+            obj.HoldDuration = 0
+        end
+    end
+end)
+
+-- --- ZOOM UNLOCK BUTTON ---
+GameTab:CreateButton({
+    Name = "Unlock Max Zoom",
+    Callback = function()
+        _G.ZoomUnlocked = true
+        Rayfield:Notify({
+            Title = "Zoom Unlocked",
+            Content = "Max Zoom set to 1000. You can now scroll out freely!",
+            Duration = 5,
+            Image = 4483345998,
+        })
+    end,
+})
+
+task.spawn(function()
+    while true do
+        if _G.ZoomUnlocked then
+            Player.CameraMaxZoomDistance = 1000
+        end
+        task.wait(0.5)
+    end
+end)
+
+GameTab:CreateSection("Movement Mods")
+GameTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 300},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 16,
+    Flag = "SliderSpeed", 
+    Callback = function(Value)
+        pcall(function() Player.Character.Humanoid.WalkSpeed = Value end)
+    end,
+})
+
+GameTab:CreateSlider({
+    Name = "JumpPower",
+    Range = {50, 400},
+    Increment = 1,
+    Suffix = "Jump",
+    CurrentValue = 50,
+    Flag = "SliderJump", 
+    Callback = function(Value)
+        pcall(function() Player.Character.Humanoid.JumpPower = Value end)
+    end,
+})
+
+GameTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "ToggleInfJump", 
+    Callback = function(Value)
+        _G.InfJump = Value
+    end,
+})
+
+GameTab:CreateSection("Fly")
+local flying = false
+local speed = 50
+local bv, bg
+
+GameTab:CreateToggle({
+    Name = "Fly (On/Off)",
+    CurrentValue = false,
+    Flag = "FlyToggle",
+    Callback = function(Value)
+        flying = Value
+        local char = Player.Character
+        if flying then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            bv = Instance.new("BodyVelocity", root)
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bg = Instance.new("BodyGyro", root)
+            bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bg.P = 9000
+            task.spawn(function()
+                while flying do
+                    bg.CFrame = workspace.CurrentCamera.CFrame
+                    local direction = Vector3.new(0,0,0)
+                    local UIS = game:GetService("UserInputService")
+                    if UIS:IsKeyDown(Enum.KeyCode.W) then direction = direction + workspace.CurrentCamera.CFrame.LookVector end
+                    if UIS:IsKeyDown(Enum.KeyCode.S) then direction = direction - workspace.CurrentCamera.CFrame.LookVector end
+                    if UIS:IsKeyDown(Enum.KeyCode.A) then direction = direction - workspace.CurrentCamera.CFrame.RightVector end
+                    if UIS:IsKeyDown(Enum.KeyCode.D) then direction = direction + workspace.CurrentCamera.CFrame.RightVector end
+                    bv.Velocity = direction * speed
+                    task.wait()
+                end
+                if bv then bv:Destroy() end
+                if bg then bg:Destroy() end
+            end)
+        else
+            if bv then bv:Destroy() end
+            if bg then bg:Destroy() end
+        end
+    end,
+})
+
+-- ==========================================
+-- TAB 3: AUTOMATION
+-- ==========================================
+local Automation = Window:CreateTab("Automation", 4483345998)
+
+--- AUTO COIN EVENT ---
+
+Automation:CreateSection("Auto Collect Coins")
+
+_G.AutoTPMoneyEvent = false
+_G.MoneyTPDelay = 0.2 
+
+Automation:CreateToggle({
+    Name = "Auto-Collect All Money Coins",
+    CurrentValue = false,
+    Flag = "MoneyEventTPToggle",
+    Callback = function(Value)
+        _G.AutoTPMoneyEvent = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoTPMoneyEvent do
+                    local character = Player.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    local moneyFolder = workspace:FindFirstChild("MoneyEventParts")
+                    
+                    if hrp and moneyFolder then
+                        for _, coin in ipairs(moneyFolder:GetChildren()) do
+                            if not _G.AutoTPMoneyEvent then break end
+                            
+                            local mainPart = coin:FindFirstChild("Main")
+                            
+                            if mainPart and mainPart:IsA("BasePart") then
+                                -- FIX: Stop physics from pulling the PLAYER to the COIN
+                                mainPart.Velocity = Vector3.new(0,0,0)
+                                mainPart.RotVelocity = Vector3.new(0,0,0)
+                                mainPart.CanCollide = false -- Prevents coin from hitting/moving you
+                                
+                                -- Teleport the coin to a position slightly in front of you
+                                -- (Using CFrame.new ensures the coin moves to you, not vice versa)
+                                mainPart.CFrame = hrp.CFrame * CFrame.new(0, 0, -1)
+                                
+                                -- Simulate the touch
+                                firetouchinterest(hrp, mainPart, 0)
+                                task.wait(0.05)
+                                firetouchinterest(hrp, mainPart, 1)
+                                
+                                -- Delayed destruction so server catches up
+                                task.delay(0.9, function()
+                                    if coin and coin.Parent then 
+                                        coin:Destroy() 
+                                    end
+                                end)
+                                
+                                task.wait(_G.MoneyTPDelay)
+                            end
+                        end
+                    end
+                    task.wait(1) 
+                end
+            end)
+        end
+    end,
+})
+
+_G.AutoCollectUFO = false
+_G.UFO_Delay = 0.15
+
+Automation:CreateToggle({
+    Name = "Auto-Collect UFO Coins",
+    CurrentValue = false,
+    Flag = "UFOToggle",
+    Callback = function(Value)
+        _G.AutoCollectUFO = Value
+        if _G.AutoCollectUFO then
+            task.spawn(function()
+                local CoinBombEvent = ReplicatedStorage.Packages.Net:FindFirstChild("RE/CoinBombEvent")
+                
+                -- Loop stays active as long as toggle is ON
+                while _G.AutoCollectUFO do
+                    local UFOParts = workspace:FindFirstChild("UFOEventParts")
+                    
+                    if UFOParts then
+                        for _, coin in ipairs(UFOParts:GetChildren()) do
+                            if not _G.AutoCollectUFO then break end
+                            
+                            local hitbox = coin:FindFirstChild("Hitbox")
+                            local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                            
+                            if hitbox and hrp then
+                                -- Teleport coin to player and fire event
+                                hitbox.CFrame = hrp.CFrame
+                                if CoinBombEvent then
+                                    CoinBombEvent:FireServer(coin)
+                                end
+                                -- UPDATED: Added a 0.5s delay before local destruction to ensure collection
+                                task.delay(0.9, function()
+                                    if coin then coin:Destroy() end
+                                end)
+                            end
+                            task.wait(_G.UFO_Delay)
+                        end
+                    end
+                    task.wait(1) -- Wait and check again if no coins are currently spawned
+                end
+            end)
+        end
+    end,
+})
+
+Automation:CreateSlider({
+    Name = "Collection Delay",
+    Range = {0.05, 1},
+    Increment = 0.05,
+    Suffix = "s",
+    CurrentValue = 0.15,
+    Flag = "UFODelay",
+    Callback = function(Value)
+        _G.UFO_Delay = Value
+    end,
+})
+
+_G.AutoCollectRadioactive = false
+
+Automation:CreateToggle({
+    Name = "Auto-Collect Radioactive Coins",
+    CurrentValue = false,
+    Flag = "RadioactiveToggle",
+    Callback = function(Value)
+        _G.AutoCollectRadioactive = Value
+        if _G.AutoCollectRadioactive then
+            task.spawn(function()
+                while _G.AutoCollectRadioactive do
+                    pcall(function()
+                        local eventFolder = workspace:FindFirstChild("EventParts")
+                        local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                        
+                        if eventFolder and hrp then
+                            -- Look through EventParts for any Radioactive Coins
+                            for _, folder in ipairs(eventFolder:GetChildren()) do
+                                for _, coin in ipairs(folder:GetChildren()) do
+                                    if coin.Name == "Radioactive Coin" then
+                                        coin.CFrame = hrp.CFrame
+                                        -- UPDATED: Increased delay to 0.5s to ensure collection
+                                        task.delay(0.9, function() 
+                                            if coin then coin:Destroy() end 
+                                        end)
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.5) -- Optimized wait for background scanning
+                end
+            end)
+        end
+    end,
+})
+
+Automation:CreateSection("Selling System")
+
+Automation:CreateButton({
+    Name = "Sell Holding",
+    Callback = function()
+        local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            SellToolRemote:InvokeServer(tool)
+        else
+            Rayfield:Notify({Title = "Error", Content = "Hold an item to sell it!", Duration = 3})
+        end
+    end,
+})
+
+Automation:CreateButton({
+    Name = "Sell All Items",
+    Callback = function()
+        SellAllRemote:InvokeServer()
+    end,
+})
+
+Automation:CreateSection("Upgrades & Rebirth")
+
+_G.AutoBuySpeed = false
+Automation:CreateToggle({
+   Name = "Auto-Buy Speed Upgrades",
+   CurrentValue = false,
+   Flag = "AutoBuyToggle",
+   Callback = function(Value)
+       _G.AutoBuySpeed = Value
+       if _G.AutoBuySpeed then
+           task.spawn(function()
+               while _G.AutoBuySpeed do
+                   pcall(function()
+                       UpgradeRemote:InvokeServer(10)
+                   end)
+                   task.wait(0.5)
+               end
+           end)
+       end
+   end,
+})
+
+_G.AutoRebirth = false
+Automation:CreateToggle({
+    Name = "Auto-Rebirth (Fast)",
+    CurrentValue = false,
+    Flag = "AutoRebirthToggle",
+    Callback = function(Value)
+        _G.AutoRebirth = Value
+        if _G.AutoRebirth then
+            task.spawn(function()
+                while _G.AutoRebirth do
+                    pcall(function() RebirthRemote:InvokeServer() end)
+                    task.wait(1)
+                end
+            end)
+        end
+    end,
+})
+
+-- // PLOT DETECTION LOGIC //
+local MyPlotID = "Searching..."
+local SelectedStands = {"5"}
+
+local function FindMyBase()
+    local basesFolder = workspace:FindFirstChild("Bases")
+    if not basesFolder then return nil end
+    for _, base in pairs(basesFolder:GetChildren()) do
+        local pNameLabel = base:FindFirstChild("PlayerName", true) -- Recursive search for the name label
+        if pNameLabel and (pNameLabel.Text == Player.Name or pNameLabel.Text == Player.DisplayName or string.find(pNameLabel.Text, Player.Name)) then
+            return base.Name 
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    while MyPlotID == "Searching..." do
+        local id = FindMyBase()
+        if id then MyPlotID = id break end
+        task.wait(2)
+    end
+end)
+
+-- --- BRAINROT PLOT SECTION ---
+
+Automation:CreateSection("Auto Upgrade & Collect Money")
+
+-- Money collection kept exactly as requested
+Automation:CreateToggle({
+   Name = "Auto-Collect Money",
+   CurrentValue = false,
+   Flag = "AutoCollPlot",
+   Callback = function(Value)
+      _G.AutoCollectPlot = Value
+      if Value then
+         task.spawn(function()
+            local remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):FindFirstChild("RF/Plot.PlotAction")
+            while _G.AutoCollectPlot do
+               if MyPlotID ~= "Searching..." and remote then
+                  for i = 1, 99 do
+                     if not _G.AutoCollectPlot then break end
+                     pcall(function() remote:InvokeServer("Collect Money", MyPlotID, tostring(i)) end)
+                     task.wait(0.01)
+                  end
+               end
+               task.wait(1)
+            end
+         end)
+      end
+   end,
+})
+
+Automation:CreateDropdown({
+    Name = "Select Target Stands",
+    -- Options now go up to 35
+    Options = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35"},
+    CurrentOption = {"5"},
+    MultipleOptions = true,
+    Flag = "GlobalStandSelector",
+    Callback = function(Options) SelectedStands = Options end,
+})
+
+-- Variable to control the loop
+_G.AutoUpgradeBrainrot = false
+
+-- The Toggle: For hands-free upgrading
+Automation:CreateToggle({
+    Name = "Auto-Upgrade Brainrot (Loop)",
+    CurrentValue = false,
+    Flag = "AutoUpgLoop",
+    Callback = function(Value)
+        _G.AutoUpgradeBrainrot = Value
+        
+        if Value then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):FindFirstChild("RF/Plot.PlotAction")
+                
+                while _G.AutoUpgradeBrainrot do
+                    if MyPlotID ~= "Searching..." and remote then
+                        for _, standNum in ipairs(SelectedStands) do
+                            -- Check current level before spamming
+                            local currentLevel = 0
+                            pcall(function()
+                                local plot = workspace.Bases:FindFirstChild(MyPlotID)
+                                local stand = plot.Stands:FindFirstChild(tostring(standNum))
+                                local lvlObj = stand:FindFirstChild("Level") or stand:FindFirstChild("Stage") or (stand:FindFirstChild("Configuration") and stand.Configuration:FindFirstChild("Level"))
+                                
+                                if lvlObj then
+                                    currentLevel = lvlObj.Value
+                                elseif stand:GetAttribute("Level") then
+                                    currentLevel = stand:GetAttribute("Level")
+                                end
+                            end)
+
+                            -- Only upgrade if below 175
+                            if currentLevel < 175 then
+                                pcall(function() 
+                                    remote:InvokeServer("Upgrade Brainrot", MyPlotID, tostring(standNum)) 
+                                end)
+                            end
+                        end
+                    end
+                    -- Small wait between loop cycles to prevent lag
+                    task.wait(0.1) 
+                end
+            end)
+        end
+    end,
+})
+
+Automation:CreateButton({
+    Name = "Instant Max Brainrot (175)",
+    Callback = function()
+       if MyPlotID == "Searching..." then Rayfield:Notify({Title = "Error", Content = "Base not found!", Duration = 3}) return end
+       local remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):FindFirstChild("RF/Plot.PlotAction")
+       
+       for _, standNum in ipairs(SelectedStands) do
+          task.spawn(function()
+             local currentLevel = 0
+             pcall(function()
+                 local plot = workspace.Bases:FindFirstChild(MyPlotID)
+                 local stand = plot.Stands:FindFirstChild(tostring(standNum))
+                 local lvlObj = stand:FindFirstChild("Level") or stand:FindFirstChild("Stage") or (stand:FindFirstChild("Configuration") and stand.Configuration:FindFirstChild("Level"))
+                 
+                 if lvlObj then currentLevel = lvlObj.Value
+                 elseif stand:GetAttribute("Level") then currentLevel = stand:GetAttribute("Level") end
+             end)
+
+             local MAX_LEVEL = 175
+             local needed = MAX_LEVEL - currentLevel
+             
+             if needed > 0 then
+                 for i = 1, needed do
+                    task.spawn(function() 
+                        pcall(function() remote:InvokeServer("Upgrade Brainrot", MyPlotID, tostring(standNum)) end)
+                    end)
+                    if i % 15 == 0 then task.wait(0.02) end 
+                 end
+             end
+          end)
+       end
+       Rayfield:Notify({Title = "Alpha Hub", Content = "Instant upgrade batch sent!", Duration = 2})
+    end,
+})
+
+Automation:CreateSection("Auto Spawn Machine")
+
+Automation:CreateDropdown({
+   Name = "Select Machine",
+   Options = {"Default", "ATM", "Blackhole"}, 
+   CurrentOption = {"Default"},
+   Callback = function(Option) SelectedMachineName = Option[1] end,
+})
+
+Automation:CreateButton({
+    Name = "Deposit (Hold Item)",
+    Callback = function()
+        fireMachineRemote("ProximityPrompt")
+    end,
+})
+
+Automation:CreateButton({
+    Name = "Blink-Craft (Auto Confirm)",
+    Callback = function()
+        local machine = workspace.SpawnMachines:FindFirstChild(SelectedMachineName)
+        local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        
+        if machine and root then
+            local oldPos = root.CFrame
+            
+            -- 1. Blink to Machine
+            root.CFrame = machine.Main.CFrame
+            task.wait(0.2)
+            
+            -- 2. Fire Craft Prompt (Index 2)
+            local prompts = machine.Main:FindFirstChild("Prompts")
+            local craftPrompt = prompts and prompts:GetChildren()[2]
+            if craftPrompt then fireproximityprompt(craftPrompt) end
+            
+            -- 3. Wait for UI delay and Force Click
+            task.wait(0.4) 
+            activateYesButton()
+            
+            -- 4. Return to last location
+            task.wait(0.1)
+            root.CFrame = oldPos
+            Rayfield:Notify({Title = "Success", Content = "Blink-Craft Completed", Duration = 2})
+        end
+    end,
+})
+
+Automation:CreateButton({
+    Name = "Withdraw All Brainrots",
+    Callback = function()
+        fireMachineRemote(3)
+    end,
+})
+
+local SettingsTab = Window:CreateTab("Settings", 4483345998)
+SettingsTab:CreateButton({
+    Name = "Destroy UI",
+    Callback = function()
+        Rayfield:Destroy()
+    end,
+})
+
+SettingsTab:CreateLabel("Alpha Hub V1.0")
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if _G.InfJump then
+        pcall(function()
+            Player.Character:FindFirstChildOfClass('Humanoid'):ChangeState("Jumping")
+        end)
+    end
+end)
+
+Rayfield:Notify({
+    Title = "Alpha Hub Loaded",
+    Content = "Welcome, " .. Player.DisplayName .. "!",
+    Duration = 5,
+    Image = 4483345998,
+})
